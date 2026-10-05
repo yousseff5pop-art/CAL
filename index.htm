@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حاسبة الأقساط العقارية</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Tajawal', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: #f1f5f9;
+      color: #334155;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased">
+
+  <!-- Header / Navigation -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
+            🏠
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-800 leading-tight">حاسبة الأقساط العقارية</h1>
+            <p class="text-xs text-slate-500">حساب الأقساط وإدارة الوحدات بسهولة</p>
+          </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <nav class="flex space-x-1 space-x-reverse bg-slate-100 p-1 rounded-xl">
+          <button id="nav-calc" onclick="switchTab('calc')" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 bg-white text-blue-600 shadow-sm">
+            🧮 الحاسبة
+          </button>
+          <button id="nav-units" onclick="switchTab('units')" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900">
+            🏢 الوحدات (<span id="units-count">0</span>)
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+    <!-- Validation Alert -->
+    <div id="error-alert" class="hidden mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium flex items-center gap-2 animate-bounce">
+      ⚠️ <span id="error-message">رجاء التأكد من البيانات المدخلة!</span>
+    </div>
+
+    <!-- TAB 1: Calculator -->
+    <section id="sec-calc" class="space-y-6">
+      
+      <!-- Input Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 md:p-7">
+        
+        <!-- Selection Mode Header -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pb-6 border-b border-slate-100">
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">طريقة إدخال السعر</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-mode-manual" onclick="setSelectionSource('manual')" class="py-2.5 px-3 text-sm font-semibold rounded-xl border transition-all text-center border-blue-600 bg-blue-50 text-blue-700">
+                إدخال يدوي
+              </button>
+              <button id="btn-mode-unit" onclick="setSelectionSource('unit')" class="py-2.5 px-3 text-sm font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all text-center">
+                اختيار وحدة محفوظة
+              </button>
+            </div>
+          </div>
+
+          <!-- Unit Dropdown -->
+          <div id="unit-selector-container" class="hidden">
+            <label class="block text-sm font-semibold text-slate-700 mb-2">اختر الوحدة</label>
+            <select id="select-unit" onchange="onUnitSelect()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="">-- اختر من القائمة --</option>
+            </select>
+
+            <div id="price-type-container" class="hidden mt-3 flex items-center gap-4 text-xs font-medium text-slate-600">
+              <span>اختر السعر:</span>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="price_type" value="installment" checked onchange="onPriceTypeChange()" class="text-blue-600 focus:ring-blue-500">
+                سعر التقسيط (<span id="unit-inst-price-label">0</span> ج.م)
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="price_type" value="cash" onchange="onPriceTypeChange()" class="text-blue-600 focus:ring-blue-500">
+                سعر الكاش (<span id="unit-cash-price-label">0</span> ج.م)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode Switcher -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+          <div class="inline-flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+            <button id="calc-mode-1-btn" onclick="setCalcMode(1)" class="flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-lg transition-all bg-white text-blue-600 shadow-sm">
+              حساب القسط الشهري
+            </button>
+            <button id="calc-mode-2-btn" onclick="setCalcMode(2)" class="flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+              حساب مدة السداد
+            </button>
+          </div>
+          <span class="text-xs text-slate-400 font-medium">* جميع الحسابات بدون فوائد بنكية</span>
+        </div>
+
+        <!-- Inputs Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+          <!-- Total Price -->
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5">إجمالي السعر (جنيه)</label>
+            <input type="text" id="inp-total-price" oninput="formatInputAndCalc(this)" placeholder="مثال: 2,350,000" class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl px-4 py-3 text-slate-800 text-base font-bold outline-none transition-all">
+          </div>
+
+          <!-- Down Payment -->
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5">المقدم (جنيه)</label>
+            <input type="text" id="inp-down-payment" oninput="formatInputAndCalc(this)" placeholder="مثال: 800,000" class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl px-4 py-3 text-slate-800 text-base font-bold outline-none transition-all">
+          </div>
+
+          <!-- Mode 1 Input: Duration -->
+          <div id="input-group-duration">
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="block text-xs font-bold text-slate-600">مدة السداد</label>
+              <div class="flex items-center gap-2 text-xs">
+                <label class="cursor-pointer font-medium text-slate-500">
+                  <input type="radio" name="duration_unit" value="years" checked onchange="calculate()"> سنوات
+                </label>
+                <label class="cursor-pointer font-medium text-slate-500">
+                  <input type="radio" name="duration_unit" value="months" onchange="calculate()"> شهور
+                </label>
+              </div>
+            </div>
+            <input type="text" id="inp-duration" oninput="formatInputAndCalc(this)" placeholder="مثال: 3" class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl px-4 py-3 text-slate-800 text-base font-bold outline-none transition-all">
+          </div>
+
+          <!-- Mode 2 Input: Monthly Target -->
+          <div id="input-group-monthly" class="hidden">
+            <label class="block text-xs font-bold text-slate-600 mb-1.5">القسط الشهري المستهدف (جنيه)</label>
+            <input type="text" id="inp-monthly-target" oninput="formatInputAndCalc(this)" placeholder="مثال: 50,000" class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-xl px-4 py-3 text-slate-800 text-base font-bold outline-none transition-all">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Results Display Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 md:p-7">
+        <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+          📊 ملخص النتائج والتفاصيل
+        </h2>
+
+        <!-- Results Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <span class="block text-xs font-semibold text-slate-500 mb-1">السعر الإجمالي</span>
+            <span id="res-total" class="text-base sm:text-lg font-extrabold text-slate-800">0</span>
+            <span class="text-xs text-slate-500 font-normal">جنيه</span>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <span class="block text-xs font-semibold text-slate-500 mb-1">المقدم</span>
+            <span id="res-down" class="text-base sm:text-lg font-extrabold text-slate-800">0</span>
+            <span class="text-xs text-slate-500 font-normal">جنيه</span>
+          </div>
+
+          <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+            <span class="block text-xs font-semibold text-blue-600 mb-1">المبلغ المتبقي</span>
+            <span id="res-remaining" class="text-base sm:text-lg font-extrabold text-blue-700">0</span>
+            <span class="text-xs text-blue-600 font-normal">جنيه</span>
+          </div>
+
+          <div class="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4">
+            <span class="block text-xs font-semibold text-emerald-600 mb-1">القسط الشهري</span>
+            <span id="res-monthly" class="text-base sm:text-xl font-extrabold text-emerald-700">0</span>
+            <span class="text-xs text-emerald-600 font-normal">جنيه</span>
+          </div>
+
+          <div class="bg-teal-50/50 border border-teal-100 rounded-xl p-4">
+            <span class="block text-xs font-semibold text-teal-600 mb-1">القسط الربع سنوي</span>
+            <span id="res-quarterly" class="text-base sm:text-xl font-extrabold text-teal-700">0</span>
+            <span class="text-xs text-teal-600 font-normal">جنيه</span>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <span class="block text-xs font-semibold text-slate-500 mb-1">عدد الأشهر والاقساط</span>
+            <span id="res-months-count" class="text-base sm:text-lg font-extrabold text-slate-800">0</span>
+            <span class="text-xs text-slate-500 font-normal">شهراً (<span id="res-quarterly-count">0</span> قسط 4/سنة)</span>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 col-span-2 sm:col-span-1">
+            <span class="block text-xs font-semibold text-slate-500 mb-1">مدة السداد التفصيلية</span>
+            <span id="res-period-text" class="text-sm font-bold text-slate-800 block">-</span>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 col-span-2 sm:col-span-1">
+            <span class="block text-xs font-semibold text-slate-500 mb-1">إجمالي المدفوعات</span>
+            <span id="res-total-paid" class="text-base sm:text-lg font-extrabold text-slate-800">0</span>
+            <span class="text-xs text-slate-500 font-normal">جنيه</span>
+          </div>
+        </div>
+
+        <div id="final-installment-note" class="hidden mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+          💡 <strong>ملاحظة القسط الأخير:</strong> نظراً للقسمة، سيكون القسط الأخير (رقم <span id="last-inst-num">0</span>) بقيمة <strong id="last-inst-val">0</strong> جنيه لتصفية المتبقي تماماً.
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 2: Units Management -->
+    <section id="sec-units" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">سجل الوحدات العقارية</h2>
+          <p class="text-xs text-slate-500">قم بإضافة وتحديث بيانات الوحدات لاستخدامها لاحقاً في الحاسبة</p>
+        </div>
+        <button onclick="openUnitModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-sm transition-all flex items-center gap-2">
+          <span>➕</span> إضافة وحدة جديدة
+        </button>
+      </div>
+
+      <div id="units-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+      <div id="units-empty" class="hidden bg-white border border-slate-200 rounded-2xl p-12 text-center">
+        <span class="text-4xl block mb-3">🏢</span>
+        <h3 class="text-base font-bold text-slate-700 mb-1">لا توجد وحدات محفوظة</h3>
+        <p class="text-xs text-slate-500 mb-4">قم بإضافة وحدتك الأولى للبدء في استخدامها داخل الحاسبة بنقرة واحدة</p>
+        <button onclick="openUnitModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all">
+          إضافة وحدة الآن
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal for Add/Edit Unit -->
+  <div id="unit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg border border-slate-100 overflow-hidden transform transition-all">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+        <h3 id="modal-title" class="font-bold text-slate-800">إضافة وحدة جديدة</h3>
+        <button onclick="closeUnitModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+      </div>
+      
+      <form id="unit-form" onsubmit="handleUnitFormSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="unit-id">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">اسم الوحدة *</label>
+          <input type="text" id="unit-name" required placeholder="مثال: شقة 155 متر - التجمع" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">المساحة</label>
+            <input type="text" id="unit-area" placeholder="مثال: 155 متر" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">عدد الغرف</label>
+            <input type="text" id="unit-rooms" placeholder="3 غرف" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">عدد الحمامات</label>
+            <input type="text" id="unit-baths" placeholder="2 حمام" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">سعر الكاش (جنيه) *</label>
+            <input type="text" id="unit-cash" required oninput="formatInputOnly(this)" placeholder="2,200,000" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">سعر التقسيط (جنيه) *</label>
+            <input type="text" id="unit-inst" required oninput="formatInputOnly(this)" placeholder="2,350,000" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2">
+          <button type="button" onclick="closeUnitModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">إلغاء</button>
+          <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-sm">حفظ الوحدة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    تطبيق حاسبة الأقساط العقارية المحلي • يعمل 100% دون الحاجة لاتصال إنترنت
+  </footer>
+
+  <script>
+    let units = JSON.parse(localStorage.getItem('realestate_units') || '[]');
+    let currentCalcMode = 1;
+    let currentSource = 'manual';
+
+    if (units.length === 0) {
+      units = [
+        { id: '1', name: 'شقة 155 متر - التجمع', area: '155 متر', rooms: '3 غرف', baths: '3 حمام', cash: 2200000, installment: 2350000 },
+        { id: '2', name: 'دوبلكس فاخر - الشيخ زايد', area: '250 متر', rooms: '4 غرف', baths: '3 حمام', cash: 2700000, installment: 2900000 }
+      ];
+      saveUnits();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderUnitsList();
+      populateUnitsDropdown();
+      calculate();
+    });
+
+    // Helper: Live Thousand Separator Formatting
+    function formatInputAndCalc(input) {
+      formatInputOnly(input);
+      calculate();
+    }
+
+    function formatInputOnly(input) {
+      let rawVal = input.value.replace(/[^\d]/g, '');
+      if (rawVal) {
+        input.value = new Intl.NumberFormat('en-US').format(parseFloat(rawVal));
+      } else {
+        input.value = '';
+      }
+    }
+
+    function parseRawNumber(valStr) {
+      if (!valStr) return 0;
+      return parseFloat(valStr.replace(/,/g, '')) || 0;
+    }
+
+    function saveUnits() {
+      localStorage.setItem('realestate_units', JSON.stringify(units));
+      document.getElementById('units-count').innerText = units.length;
+    }
+
+    function switchTab(tab) {
+      const secCalc = document.getElementById('sec-calc');
+      const secUnits = document.getElementById('sec-units');
+      const navCalc = document.getElementById('nav-calc');
+      const navUnits = document.getElementById('nav-units');
+
+      if (tab === 'calc') {
+        secCalc.classList.remove('hidden');
+        secUnits.classList.add('hidden');
+        navCalc.className = "px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 bg-white text-blue-600 shadow-sm";
+        navUnits.className = "px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900";
+      } else {
+        secCalc.classList.add('hidden');
+        secUnits.classList.remove('hidden');
+        navUnits.className = "px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 bg-white text-blue-600 shadow-sm";
+        navCalc.className = "px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 text-slate-600 hover:text-slate-900";
+      }
+    }
+
+    function setSelectionSource(source) {
+      currentSource = source;
+      const btnManual = document.getElementById('btn-mode-manual');
+      const btnUnit = document.getElementById('btn-mode-unit');
+      const unitSelectorContainer = document.getElementById('unit-selector-container');
+      const inpTotalPrice = document.getElementById('inp-total-price');
+
+      if (source === 'manual') {
+        btnManual.className = "py-2.5 px-3 text-sm font-semibold rounded-xl border transition-all text-center border-blue-600 bg-blue-50 text-blue-700";
+        btnUnit.className = "py-2.5 px-3 text-sm font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all text-center";
+        unitSelectorContainer.classList.add('hidden');
+        inpTotalPrice.removeAttribute('readonly');
+      } else {
+        btnUnit.className = "py-2.5 px-3 text-sm font-semibold rounded-xl border transition-all text-center border-blue-600 bg-blue-50 text-blue-700";
+        btnManual.className = "py-2.5 px-3 text-sm font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all text-center";
+        unitSelectorContainer.classList.remove('hidden');
+        inpTotalPrice.setAttribute('readonly', 'true');
+        onUnitSelect();
+      }
+      calculate();
+    }
+
+    function populateUnitsDropdown() {
+      const select = document.getElementById('select-unit');
+      select.innerHTML = '<option value="">-- اختر وحدة من القائمة --</option>';
+      units.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.innerText = u.name;
+        select.appendChild(opt);
+      });
+      document.getElementById('units-count').innerText = units.length;
+    }
+
+    function onUnitSelect() {
+      const selectedId = document.getElementById('select-unit').value;
+      const priceTypeContainer = document.getElementById('price-type-container');
+      const unit = units.find(u => u.id === selectedId);
+
+      if (unit) {
+        priceTypeContainer.classList.remove('hidden');
+        document.getElementById('unit-inst-price-label').innerText = formatNum(unit.installment);
+        document.getElementById('unit-cash-price-label').innerText = formatNum(unit.cash);
+        onPriceTypeChange();
+      } else {
+        priceTypeContainer.classList.add('hidden');
+        document.getElementById('inp-total-price').value = '';
+        calculate();
+      }
+    }
+
+    function onPriceTypeChange() {
+      const selectedId = document.getElementById('select-unit').value;
+      const unit = units.find(u => u.id === selectedId);
+      if (!unit) return;
+
+      const priceType = document.querySelector('input[name="price_type"]:checked').value;
+      const targetPrice = priceType === 'cash' ? unit.cash : unit.installment;
+      const inpTotal = document.getElementById('inp-total-price');
+      inpTotal.value = new Intl.NumberFormat('en-US').format(targetPrice);
+      calculate();
+    }
+
+    function setCalcMode(mode) {
+      currentCalcMode = mode;
+      const btn1 = document.getElementById('calc-mode-1-btn');
+      const btn2 = document.getElementById('calc-mode-2-btn');
+      const groupDuration = document.getElementById('input-group-duration');
+      const groupMonthly = document.getElementById('input-group-monthly');
+
+      if (mode === 1) {
+        btn1.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-lg transition-all bg-white text-blue-600 shadow-sm";
+        btn2.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+        groupDuration.classList.remove('hidden');
+        groupMonthly.classList.add('hidden');
+      } else {
+        btn2.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-lg transition-all bg-white text-blue-600 shadow-sm";
+        btn1.className = "flex-1 sm:flex-none px-5 py-2 text-sm font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+        groupMonthly.classList.remove('hidden');
+        groupDuration.classList.add('hidden');
+      }
+      calculate();
+    }
+
+    function calculate() {
+      hideError();
+      const totalPrice = parseRawNumber(document.getElementById('inp-total-price').value);
+      const downPayment = parseRawNumber(document.getElementById('inp-down-payment').value);
+
+      document.getElementById('final-installment-note').classList.add('hidden');
+
+      if (totalPrice <= 0) {
+        resetResults();
+        return;
+      }
+
+      if (downPayment > totalPrice) {
+        showError('المقدم لا يمكن أن يكون أكبر من إجمالي السعر!');
+        resetResults();
+        return;
+      }
+
+      const remaining = totalPrice - downPayment;
+      document.getElementById('res-total').innerText = formatNum(totalPrice);
+      document.getElementById('res-down').innerText = formatNum(downPayment);
+      document.getElementById('res-remaining').innerText = formatNum(remaining);
+
+      if (currentCalcMode === 1) {
+        const durationVal = parseRawNumber(document.getElementById('inp-duration').value);
+        const durationUnit = document.querySelector('input[name="duration_unit"]:checked').value;
+
+        if (durationVal <= 0) {
+          resetCalcOnly();
+          return;
+        }
+
+        const totalMonths = durationUnit === 'years' ? durationVal * 12 : durationVal;
+        const monthlyInstallment = remaining / totalMonths;
+        const quarterlyInstallment = monthlyInstallment * 3;
+        const totalPaid = downPayment + (monthlyInstallment * totalMonths);
+
+        document.getElementById('res-monthly').innerText = formatNum(Math.round(monthlyInstallment));
+        document.getElementById('res-quarterly').innerText = formatNum(Math.round(quarterlyInstallment));
+        document.getElementById('res-months-count').innerText = totalMonths;
+        document.getElementById('res-quarterly-count').innerText = Math.floor(totalMonths / 3);
+        document.getElementById('res-period-text').innerText = formatPeriodText(totalMonths);
+        document.getElementById('res-total-paid').innerText = formatNum(Math.round(totalPaid));
+
+      } else {
+        const targetMonthly = parseRawNumber(document.getElementById('inp-monthly-target').value);
+
+        if (targetMonthly <= 0) {
+          resetCalcOnly();
+          return;
+        }
+
+        const exactMonths = remaining / targetMonthly;
+        const fullMonths = Math.floor(exactMonths);
+        const remainderAmount = remaining % targetMonthly;
+
+        let totalMonthsCount = fullMonths;
+        if (remainderAmount > 0) {
+          totalMonthsCount = fullMonths + 1;
+        }
+
+        const monthlyInstallment = targetMonthly;
+        const quarterlyInstallment = monthlyInstallment * 3;
+        const totalPaid = downPayment + remaining;
+
+        document.getElementById('res-monthly').innerText = formatNum(monthlyInstallment);
+        document.getElementById('res-quarterly').innerText = formatNum(quarterlyInstallment);
+        document.getElementById('res-months-count').innerText = totalMonthsCount;
+        document.getElementById('res-quarterly-count').innerText = Math.floor(totalMonthsCount / 3);
+        document.getElementById('res-period-text').innerText = formatPeriodText(totalMonthsCount);
+        document.getElementById('res-total-paid').innerText = formatNum(totalPaid);
+
+        if (remainderAmount > 0) {
+          document.getElementById('final-installment-note').classList.remove('hidden');
+          document.getElementById('last-inst-num').innerText = totalMonthsCount;
+          document.getElementById('last-inst-val').innerText = formatNum(remainderAmount);
+        }
+      }
+    }
+
+    function formatPeriodText(months) {
+      const yrs = Math.floor(months / 12);
+      const mths = months % 12;
+
+      let text = '';
+      if (yrs > 0) {
+        if (yrs === 1) text += 'سنة واحدة';
+        else if (yrs === 2) text += 'سنتين';
+        else if (yrs >= 3 && yrs <= 10) text += yrs + ' سنوات';
+        else text += yrs + ' سنة';
+      }
+
+      if (mths > 0) {
+        if (text !== '') text += ' و ';
+        if (mths === 1) text += 'شهر واحد';
+        else if (mths === 2) text += 'شهرين';
+        else if (mths >= 3 && mths <= 10) text += mths + ' أشهر';
+        else text += mths + ' شهراً';
+      }
+
+      return text || '0 شهر';
+    }
+
+    function resetResults() {
+      document.getElementById('res-total').innerText = '0';
+      document.getElementById('res-down').innerText = '0';
+      document.getElementById('res-remaining').innerText = '0';
+      resetCalcOnly();
+    }
+
+    function resetCalcOnly() {
+      document.getElementById('res-monthly').innerText = '0';
+      document.getElementById('res-quarterly').innerText = '0';
+      document.getElementById('res-months-count').innerText = '0';
+      document.getElementById('res-quarterly-count').innerText = '0';
+      document.getElementById('res-period-text').innerText = '-';
+      document.getElementById('res-total-paid').innerText = '0';
+    }
+
+    function showError(msg) {
+      const errBox = document.getElementById('error-alert');
+      document.getElementById('error-message').innerText = msg;
+      errBox.classList.remove('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('error-alert').classList.add('hidden');
+    }
+
+    function formatNum(num) {
+      return new Intl.NumberFormat('ar-EG').format(num);
+    }
+
+    function renderUnitsList() {
+      const grid = document.getElementById('units-grid');
+      const emptyState = document.getElementById('units-empty');
+
+      grid.innerHTML = '';
+      if (units.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      units.forEach(u => {
+        const card = document.createElement('div');
+        card.className = "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between";
+        card.innerHTML = `
+          <div>
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="font-bold text-slate-800 text-base">${u.name}</h3>
+              <div class="flex gap-1">
+                <button onclick="editUnit('${u.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-50 transition-all text-xs">✏️ تعديل</button>
+                <button onclick="deleteUnit('${u.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-50 transition-all text-xs">🗑️ حذف</button>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mb-4 text-xs text-slate-500 font-medium">
+              ${u.area ? `<span class="bg-slate-100 px-2.5 py-1 rounded-md">📐 ${u.area}</span>` : ''}
+              ${u.rooms ? `<span class="bg-slate-100 px-2.5 py-1 rounded-md">🛏 ${u.rooms}</span>` : ''}
+              ${u.baths ? `<span class="bg-slate-100 px-2.5 py-1 rounded-md">🚿 ${u.baths}</span>` : ''}
+            </div>
+
+            <div class="space-y-1.5 border-t border-slate-100 pt-3 text-xs">
+              <div class="flex justify-between">
+                <span class="text-slate-500">سعر الكاش:</span>
+                <span class="font-bold text-slate-800">${formatNum(u.cash)} ج.م</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">سعر التقسيط:</span>
+                <span class="font-bold text-blue-600">${formatNum(u.installment)} ج.م</span>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="selectUnitForCalc('${u.id}')" class="mt-4 w-full py-2 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-600 border border-slate-200 hover:border-blue-200 rounded-xl font-bold text-xs transition-all">
+            استخدام هذه الوحدة للحساب 🧮
+          </button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function selectUnitForCalc(unitId) {
+      switchTab('calc');
+      setSelectionSource('unit');
+      document.getElementById('select-unit').value = unitId;
+      onUnitSelect();
+    }
+
+    function openUnitModal(editMode = false) {
+      const modal = document.getElementById('unit-modal');
+      const title = document.getElementById('modal-title');
+      if (!editMode) {
+        document.getElementById('unit-form').reset();
+        document.getElementById('unit-id').value = '';
+        title.innerText = 'إضافة وحدة جديدة';
+      } else {
+        title.innerText = 'تعديل بيانات الوحدة';
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeUnitModal() {
+      document.getElementById('unit-modal').classList.add('hidden');
+    }
+
+    function handleUnitFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('unit-id').value;
+      const name = document.getElementById('unit-name').value;
+      const area = document.getElementById('unit-area').value;
+      const rooms = document.getElementById('unit-rooms').value;
+      const baths = document.getElementById('unit-baths').value;
+      const cash = parseRawNumber(document.getElementById('unit-cash').value);
+      const installment = parseRawNumber(document.getElementById('unit-inst').value);
+
+      if (id) {
+        const index = units.findIndex(u => u.id === id);
+        if (index !== -1) {
+          units[index] = { id, name, area, rooms, baths, cash, installment };
+        }
+      } else {
+        const newUnit = {
+          id: Date.now().toString(),
+          name, area, rooms, baths, cash, installment
+        };
+        units.push(newUnit);
+      }
+
+      saveUnits();
+      renderUnitsList();
+      populateUnitsDropdown();
+      closeUnitModal();
+    }
+
+    function editUnit(id) {
+      const u = units.find(unit => unit.id === id);
+      if (!u) return;
+
+      document.getElementById('unit-id').value = u.id;
+      document.getElementById('unit-name').value = u.name;
+      document.getElementById('unit-area').value = u.area || '';
+      document.getElementById('unit-rooms').value = u.rooms || '';
+      document.getElementById('unit-baths').value = u.baths || '';
+      document.getElementById('unit-cash').value = new Intl.NumberFormat('en-US').format(u.cash);
+      document.getElementById('unit-inst').value = new Intl.NumberFormat('en-US').format(u.installment);
+
+      openUnitModal(true);
+    }
+
+    function deleteUnit(id) {
+      if (confirm('هل أنت تأكد من حذف هذه الوحدة؟')) {
+        units = units.filter(u => u.id !== id);
+        saveUnits();
+        renderUnitsList();
+        populateUnitsDropdown();
+      }
+    }
+  </script>
+</body>
+</html>
